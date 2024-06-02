@@ -14,44 +14,83 @@ function setupInputOnce() {
 }
 
 async function handleInput(event) {
-  switch (event.key) {
-    case "ArrowUp":
-      if (!canMoveUp()) {
+  // Обработка касательных вводов
+  if ('touches' in event) {
+    const touch = event.touches[0];
+    const rect = gameBoard.getBoundingClientRect();
+
+    // Определение направления по оси X
+    const deltaX = touch.clientX - rect.left;
+    const directionX = deltaX > 0? 'ArrowRight' : 'ArrowLeft';
+
+    // Определение направления по оси Y
+    const deltaY = touch.clientY - rect.top;
+    const directionY = deltaY > 0? 'ArrowDown' : 'ArrowUp';
+
+    // Вызов функции перемещения в зависимости от направления
+    if (directionX!== undefined) {
+      if (!canMove(directionX)) {
         setupInputOnce();
         return;
       }
-      await moveUp();
-      break;
-    case "ArrowDown":
-      if (!canMoveDown()) {
+      if (directionX === 'ArrowRight') {
+        await moveRight();
+      } else {
+        await moveLeft();
+      }
+    }
+    if (directionY!== undefined) {
+      if (!canMove(directionY)) {
         setupInputOnce();
         return;
       }
-      await moveDown();
-      break;
-    case "ArrowLeft":
-      if (!canMoveLeft()) {
+      if (directionY === 'ArrowDown') {
+        await moveDown();
+      } else {
+        await moveUp();
+      }
+    }
+  } else {
+    // Обработка клавиатурных вводов
+    switch (event.key) {
+      case "ArrowUp":
+        if (!canMoveUp()) {
+          setupInputOnce();
+          return;
+        }
+        await moveUp();
+        break;
+      case "ArrowDown":
+        if (!canMoveDown()) {
+          setupInputOnce();
+          return;
+        }
+        await moveDown();
+        break;
+      case "ArrowLeft":
+        if (!canMoveLeft()) {
+          setupInputOnce();
+          return;
+        }
+        await moveLeft();
+        break;
+      case "ArrowRight":
+        if (!canMoveRight()) {
+          setupInputOnce();
+          return;
+        }
+        await moveRight();
+        break;
+      default:
         setupInputOnce();
         return;
-      }
-      await moveLeft();
-      break;
-    case "ArrowRight":
-      if (!canMoveRight()) {
-        setupInputOnce();
-        return;
-      }
-      await moveRight();
-      break;
-    default:
-      setupInputOnce();
-      return;
+    }
   }
 
   const newTile = new Tile(gameBoard);
   grid.getRandomEmptyCell().linkTile(newTile);
 
-  if (!canMoveUp() && !canMoveDown() && !canMoveLeft() && !canMoveRight()) {
+  if (!canMoveUp() &&!canMoveDown() &&!canMoveLeft() &&!canMoveRight()) {
     await newTile.waitForAnimationEnd()
     alert("Try again!")
     return;
@@ -59,6 +98,7 @@ async function handleInput(event) {
 
   setupInputOnce();
 }
+
 
 async function moveUp() {
   await slideTiles(grid.cellsGroupedByColumn);
