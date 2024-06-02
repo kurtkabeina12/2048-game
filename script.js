@@ -7,114 +7,51 @@ const grid = new Grid(gameBoard);
 grid.getRandomEmptyCell().linkTile(new Tile(gameBoard));
 grid.getRandomEmptyCell().linkTile(new Tile(gameBoard));
 
-let touchStartX = 0;
-let touchStartY = 0;
-
-function setupInput() {
-  window.addEventListener("keydown", handleInput);
-  gameBoard.addEventListener("touchstart", handleTouchStart);
-  gameBoard.addEventListener("touchmove", handleTouchMove);
-  gameBoard.addEventListener("touchend", handleTouchEnd);
-}
-
 function setupInputOnce() {
-  window.removeEventListener("keydown", handleInput);
-  gameBoard.removeEventListener("touchstart", handleTouchStart);
-  gameBoard.removeEventListener("touchmove", handleTouchMove);
-  gameBoard.removeEventListener("touchend", handleTouchEnd);
+  window.addEventListener("keydown", handleInput, { once: true });
+  window.addEventListener("touchstart", handleTouchInput, { passive: false });
 }
 
 async function handleInput(event) {
-  switch (event.key) {
-    case "ArrowUp":
-      if (!canMoveUp()) {
-        setupInputOnce();
-        return;
+  switch (event.type) {
+    case "keydown":
+      switch (event.key) {
+        case "ArrowUp":
+          if (!canMoveUp()) {
+            setupInputOnce();
+            return;
+          }
+          await moveUp();
+          break;
+        case "ArrowDown":
+          if (!canMoveDown()) {
+            setupInputOnce();
+            return;
+          }
+          await moveDown();
+          break;
+        case "ArrowLeft":
+          if (!canMoveLeft()) {
+            setupInputOnce();
+            return;
+          }
+          await moveLeft();
+          break;
+        case "ArrowRight":
+          if (!canMoveRight()) {
+            setupInputOnce();
+            return;
+          }
+          await moveRight();
+          break;
+        default:
+          setupInputOnce();
+          return;
       }
-      await moveUp();
       break;
-    case "ArrowDown":
-      if (!canMoveDown()) {
-        setupInputOnce();
-        return;
-      }
-      await moveDown();
-      break;
-    case "ArrowLeft":
-      if (!canMoveLeft()) {
-        setupInputOnce();
-        return;
-      }
-      await moveLeft();
-      break;
-    case "ArrowRight":
-      if (!canMoveRight()) {
-        setupInputOnce();
-        return;
-      }
-      await moveRight();
-      break;
-    default:
-      setupInputOnce();
+    case "touchstart":
+      handleTouchInput(event);
       return;
-  }
-
-  const newTile = new Tile(gameBoard);
-  grid.getRandomEmptyCell().linkTile(newTile);
-
-  if (!canMoveUp() &&!canMoveDown() &&!canMoveLeft() &&!canMoveRight()) {
-    await newTile.waitForAnimationEnd();
-    alert("Try again!");
-    return;
-  }
-
-  setupInputOnce();
-}
-
-function handleTouchStart(event) {
-  touchStartX = event.touches[0].clientX;
-  touchStartY = event.touches[0].clientY;
-}
-
-function handleTouchMove(event) {
-  event.preventDefault(); // Предотвращаем стандартное поведение браузера
-}
-
-async function handleTouchEnd(event) {
-  const touchEndX = event.changedTouches[0].clientX;
-  const touchEndY = event.changedTouches[0].clientY;
-
-  const deltaX = touchEndX - touchStartX;
-  const deltaY = touchEndY - touchStartY;
-
-  if (Math.abs(deltaX) > Math.abs(deltaY)) {
-    if (deltaX > 0) {
-      if (!canMoveRight()) {
-        setupInputOnce();
-        return;
-      }
-      moveRight();
-    } else {
-      if (!canMoveLeft()) {
-        setupInputOnce();
-        return;
-      }
-      moveLeft();
-    }
-  } else {
-    if (deltaY > 0) {
-      if (!canMoveDown()) {
-        setupInputOnce();
-        return;
-      }
-      moveDown();
-    } else {
-      if (!canMoveUp()) {
-        setupInputOnce();
-        return;
-      }
-      moveUp();
-    }
   }
 
   const newTile = new Tile(gameBoard);
@@ -152,7 +89,7 @@ async function slideTiles(groupedCells) {
 
   await Promise.all(promises);
   grid.cells.forEach(cell => {
-    cell.hasTileForMerge() && cell.mergeTiles()
+    cell.hasTileForMerge() && cell.mergeTiles();
   });
 }
 
@@ -221,3 +158,47 @@ function canMoveInGroup(group) {
     return targetCell.canAccept(cell.linkedTile);
   });
 }
+
+function handleTouchInput(event) {
+  event.preventDefault();
+
+  const touch = event.touches[0];
+  const rect = gameBoard.getBoundingClientRect();
+
+  if (touch.clientX > rect.left && touch.clientX < rect.right &&
+      touch.clientY > rect.top && touch.clientY < rect.bottom) {
+
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+
+    let directionX = 0;
+    if (x < rect.width / 3) {
+      directionX = -1;
+    } else if (x > rect.width * 2 / 3) {
+      directionX = 1;
+    }
+
+    let directionY = 0;
+    if (y < rect.height / 3) {
+      directionY = -1;
+    } else if (y > rect.height * 2 / 3) {
+      directionY = 1;
+    }
+
+    if (directionX!== 0 || directionY!== 0) {
+      if (directionY === -1) {
+        moveUp();
+      } else if (directionY === 1) {
+        moveDown();
+      } else if (directionX === -1) {
+        moveLeft();
+      } else if (directionX === 1) {
+        moveRight();
+      }
+    }
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  setupInputOnce();
+});
