@@ -6,58 +6,94 @@ const gameBoard = document.getElementById("game-board");
 const grid = new Grid(gameBoard);
 grid.getRandomEmptyCell().linkTile(new Tile(gameBoard));
 grid.getRandomEmptyCell().linkTile(new Tile(gameBoard));
+setupInputOnce();
+
+// Добавляем обработчики свайпов на мобильных устройствах
+let touchStartX, touchStartY, touchEndX, touchEndY;
+gameBoard.addEventListener("touchstart", handleTouchStart, false);
+gameBoard.addEventListener("touchmove", handleTouchMove, false);
+gameBoard.addEventListener("touchend", handleTouchEnd, false);
+
+function handleTouchStart(event) {
+  touchStartX = event.touches[0].clientX;
+  touchStartY = event.touches[0].clientY;
+}
+
+function handleTouchMove(event) {
+  event.preventDefault(); // Предотвращаем прокрутку страницы при свайпе
+}
+
+function handleTouchEnd(event) {
+  touchEndX = event.changedTouches[0].clientX;
+  touchEndY = event.changedTouches[0].clientY;
+  handleSwipe();
+}
+
+function handleSwipe() {
+  const deltaX = touchEndX - touchStartX;
+  const deltaY = touchEndY - touchStartY;
+  if (Math.abs(deltaX) > Math.abs(deltaY)) {
+    if (deltaX > 0) {
+      // Swipe вправо
+      handleInput({ key: "ArrowRight" });
+    } else {
+      // Swipe влево
+      handleInput({ key: "ArrowLeft" });
+    }
+  } else {
+    if (deltaY > 0) {
+      // Swipe вниз
+      handleInput({ key: "ArrowDown" });
+    } else {
+      // Swipe вверх
+      handleInput({ key: "ArrowUp" });
+    }
+  }
+}
 
 function setupInputOnce() {
   window.addEventListener("keydown", handleInput, { once: true });
-  window.addEventListener("touchstart", handleTouchInput, { passive: false });
 }
 
 async function handleInput(event) {
-  switch (event.type) {
-    case "keydown":
-      switch (event.key) {
-        case "ArrowUp":
-          if (!canMoveUp()) {
-            setupInputOnce();
-            return;
-          }
-          await moveUp();
-          break;
-        case "ArrowDown":
-          if (!canMoveDown()) {
-            setupInputOnce();
-            return;
-          }
-          await moveDown();
-          break;
-        case "ArrowLeft":
-          if (!canMoveLeft()) {
-            setupInputOnce();
-            return;
-          }
-          await moveLeft();
-          break;
-        case "ArrowRight":
-          if (!canMoveRight()) {
-            setupInputOnce();
-            return;
-          }
-          await moveRight();
-          break;
-        default:
-          setupInputOnce();
-          return;
+  switch (event.key) {
+    case "ArrowUp":
+      if (!canMoveUp()) {
+        setupInputOnce();
+        return;
       }
+      await moveUp();
       break;
-    case "touchstart":
-      handleTouchInput(event);
+    case "ArrowDown":
+      if (!canMoveDown()) {
+        setupInputOnce();
+        return;
+      }
+      await moveDown();
+      break;
+    case "ArrowLeft":
+      if (!canMoveLeft()) {
+        setupInputOnce();
+        return;
+      }
+      await moveLeft();
+      break;
+    case "ArrowRight":
+      if (!canMoveRight()) {
+        setupInputOnce();
+        return;
+      }
+      await moveRight();
+      break;
+    default:
+      setupInputOnce();
       return;
   }
 
   const newTile = new Tile(gameBoard);
   grid.getRandomEmptyCell().linkTile(newTile);
 
-  if (!canMoveUp() &&!canMoveDown() &&!canMoveLeft() &&!canMoveRight()) {
+  if (!canMoveUp() && !canMoveDown() && !canMoveLeft() && !canMoveRight()) {
     await newTile.waitForAnimationEnd();
     alert("Try again!");
     return;
@@ -158,47 +194,3 @@ function canMoveInGroup(group) {
     return targetCell.canAccept(cell.linkedTile);
   });
 }
-
-function handleTouchInput(event) {
-  event.preventDefault();
-
-  const touch = event.touches[0];
-  const rect = gameBoard.getBoundingClientRect();
-
-  if (touch.clientX > rect.left && touch.clientX < rect.right &&
-      touch.clientY > rect.top && touch.clientY < rect.bottom) {
-
-    const x = touch.clientX - rect.left;
-    const y = touch.clientY - rect.top;
-
-    let directionX = 0;
-    if (x < rect.width / 3) {
-      directionX = -1;
-    } else if (x > rect.width * 2 / 3) {
-      directionX = 1;
-    }
-
-    let directionY = 0;
-    if (y < rect.height / 3) {
-      directionY = -1;
-    } else if (y > rect.height * 2 / 3) {
-      directionY = 1;
-    }
-
-    if (directionX!== 0 || directionY!== 0) {
-      if (directionY === -1) {
-        moveUp();
-      } else if (directionY === 1) {
-        moveDown();
-      } else if (directionX === -1) {
-        moveLeft();
-      } else if (directionX === 1) {
-        moveRight();
-      }
-    }
-  }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  setupInputOnce();
-});
